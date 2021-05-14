@@ -1,0 +1,138 @@
+/*************************************************** 
+ FCI – Faculdade de Computação e Informática
+ Ciência da Computação
+ 
+ Caio Sampaio Oliveira (32195621)
+ TURMA: 01N12
+ ****************************************************/
+ 
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+
+void beginServos();
+
+int pinoLed1 = 2;
+int pinoIn1 = 10;
+int pinoIn2 = 9;
+unsigned int valorSensorSolo;
+unsigned int mapSensorSolo;
+
+int pinoLed2 = 4;
+unsigned int valorSensorTemp;
+unsigned int mapSensorTemp;
+
+int pinoLed3 = 7;
+int pinoServos = 9;
+unsigned int valorSensorLuz1;
+unsigned int valorSensorLuz2;
+unsigned int pwmSensorLuz1;
+unsigned int pwmSensorLuz2;
+
+void setup()
+{
+  Serial.begin(9600);
+  
+  pinMode(pinoLed1, OUTPUT);
+
+  pinMode(pinoIn1, OUTPUT);
+  pinMode(pinoIn2, OUTPUT);
+  
+  pinMode(pinoLed2, OUTPUT);
+  
+  pinMode(pinoLed3, OUTPUT);
+
+  beginServos();
+}
+
+void loop()
+{
+  
+  valorSensorSolo = analogRead(A0);
+  mapSensorSolo = map(valorSensorSolo, 0, 1023, 0, 100);
+  sensorSolo();
+  
+  //Serial.println("Sensor de Umidade de Solo: ");
+  //Serial.print(mapSensorSolo);
+  //Serial.println("  ");
+  
+  valorSensorTemp = analogRead(A1);
+  mapSensorTemp = map(valorSensorTemp, 0, 1023, 0, 100);
+  sensorTemp();
+  
+  //Serial.println("Sensor de Temperatura: ");
+  //Serial.print(mapSensorTemp);
+  //Serial.println("  ");
+
+  ativarBomba();
+  
+  valorSensorLuz1 = analogRead(A2);
+  pwmSensorLuz1 = map(valorSensorLuz1, 0, 1023, 0, 100);
+  valorSensorLuz2 = analogRead(A3);
+  pwmSensorLuz2 = map(valorSensorLuz2, 0, 1023, 0, 100);
+  sensorLuz();
+  
+  Serial.println("Sensor LDR 1: ");
+  Serial.print(pwmSensorLuz1);
+  Serial.println("  ");
+  Serial.println("Sensor LDR 2: ");
+  Serial.print(pwmSensorLuz2);
+  Serial.println("  ");
+}
+
+void sensorSolo(){
+  if(mapSensorSolo >= 50){
+    digitalWrite(pinoLed1, HIGH);
+  }
+  else{
+    digitalWrite(pinoLed1, LOW);
+  }
+}
+
+void sensorTemp(){
+  if(mapSensorTemp >= 13){
+    digitalWrite(pinoLed2, HIGH);
+  }
+  else{
+    digitalWrite(pinoLed2, LOW);
+  }
+}
+
+void ativarBomba(){
+  if((mapSensorSolo >= 50)||(mapSensorTemp >= 13)){
+    digitalWrite(pinoIn1, HIGH);
+  }
+  else{
+    digitalWrite(pinoIn1, LOW);
+  }
+}
+
+void sensorLuz(){
+  if((pwmSensorLuz1 <= 50)){
+    digitalWrite(pinoLed3, HIGH);
+    writeServos(3, 0);
+    writeServos(1, 0);
+  }
+  else if((pwmSensorLuz1 >= 50)&&(pwmSensorLuz2 >= 40)){
+    digitalWrite(pinoLed3,  LOW);
+    writeServos(3, 180);
+    writeServos(1, 180);
+  }
+}
+
+void writeServos(int numeroServo, int posicao) {
+#define SERVOMIN  205 // VALOR PARA UM PULSO MAIOR QUE 1 mS
+#define SERVOMAX  409 // VALOR PARA UM PULSO MENOR QUE 2 mS
+
+  int pos = map(posicao, 0, 180, SERVOMIN, SERVOMAX);
+  pwm.setPWM(numeroServo, 0, pos);
+}
+
+void beginServos() {
+
+#define Freq 50
+
+  pwm.begin();
+  pwm.setPWMFreq(Freq);
+}
